@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Simulador Comercial — Varejo de Tecnologia</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#004182;min-height:100vh}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#0A66C2;border-radius:3px}
+</style>
+</head>
+<body>
+
+<div style="min-height:100vh;background:#004182;padding-bottom:24px">
+
+<!-- HEADER -->
+<div style="background:#003177;padding:11px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #0A66C2">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="width:36px;height:36px;background:#0A66C2;border-radius:6px;display:flex;align-items:center;justify-content:center">
+      <span style="color:#fff;font-size:16px;font-weight:800">S</span>
+    </div>
+    <div>
+      <div style="color:#fff;font-size:15px;font-weight:600;letter-spacing:.01em">Simulador Comercial</div>
+      <div style="color:rgba(255,255,255,.45);font-size:10px;margin-top:1px">Lucro Real · Varejo de Tecnologia · Versão 2.0</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button onclick="resetAll()" style="background:#6B7280;color:#fff;border:none;padding:7px 15px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer">↺ Reset</button>
+    <button onclick="precificar(this)" style="background:#4B5563;color:#fff;border:none;padding:7px 15px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer">⚡ Gerar Precificação</button>
+  </div>
+</div>
+
+<!-- TOP PANEL -->
+<div style="background:#0A66C2;padding:12px 18px;display:flex;gap:12px;align-items:start">
+
+  <!-- Condições comerciais -->
+  <div style="background:#fff;border-radius:8px;padding:13px 15px;flex:1">
+    <div style="font-size:10px;font-weight:700;color:#004182;letter-spacing:.09em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #dbeafe">Condições comerciais</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+      <div>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em">Preço à vista sugerido</div>
+        <div id="f-preco" style="font-size:20px;font-weight:700;color:#0A66C2;line-height:1.1">—</div>
+        <div style="margin-top:10px">
+          <div style="font-size:10px;color:#6b7280;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em">Margem target</div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <input type="range" id="margin" min="5" max="85" value="40" style="flex:1;accent-color:#0A66C2;height:4px" oninput="calc()"/>
+            <span id="margin-lbl" style="font-size:14px;font-weight:700;color:#0A66C2;min-width:36px">40%</span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em">Entrada (R$)</div>
+        <input type="number" id="entrada" value="0" min="0" oninput="calc()" style="width:100%;font-size:13px;padding:5px 8px;border:1.5px solid #d1d5db;border-radius:4px;margin-bottom:8px"/>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em">Valor a financiar</div>
+        <div id="f-vf" style="font-size:14px;font-weight:600;color:#374151">—</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#6b7280;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Parcelamento (máx 35×)</div>
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px">
+          <button onclick="adjInst(-1)" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;width:26px;height:26px;font-size:15px;cursor:pointer;color:#374151">−</button>
+          <input type="number" id="inst" value="1" min="1" max="35" oninput="clampInst();calc()" style="width:46px;text-align:center;padding:4px;border:1.5px solid #d1d5db;border-radius:4px;font-size:13px;font-weight:600"/>
+          <button onclick="adjInst(1)" style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;width:26px;height:26px;font-size:15px;cursor:pointer;color:#374151">+</button>
+          <span style="font-size:11px;color:#9ca3af">vezes</span>
+        </div>
+        <div id="row-taxa" style="display:none;margin-bottom:6px">
+          <div style="font-size:10px;color:#6b7280;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em">SELIC mensal (%)</div>
+          <input type="number" id="rate" value="0.75" step="0.01" oninput="calc()" style="width:72px;padding:4px 8px;border:1.5px solid #d1d5db;border-radius:4px;font-size:12px"/>
+        </div>
+        <div id="row-parcela" style="display:none">
+          <div style="font-size:10px;color:#6b7280;margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em">Valor das parcelas (VF)</div>
+          <div id="f-parcela" style="font-size:14px;font-weight:700;color:#0A66C2">—</div>
+          <div id="f-total-fin" style="font-size:11px;color:#6b7280;margin-top:2px">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumo + Badge -->
+  <div style="display:flex;gap:10px;align-items:stretch">
+    <div style="background:#fff;border-radius:8px;padding:13px 14px;min-width:185px">
+      <div style="font-size:10px;font-weight:700;color:#004182;letter-spacing:.09em;text-transform:uppercase;margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid #dbeafe">Resumo de custos</div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:.5px solid #e5e7eb">
+        <span style="font-size:11px;color:#6b7280">Custo total</span>
+        <span id="r-custo" style="font-size:11px;font-weight:600;color:#374151">—</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:.5px solid #e5e7eb">
+        <span style="font-size:11px;color:#6b7280">Total impostos</span>
+        <span id="r-impost" style="font-size:11px;font-weight:600;color:#D97706">—</span>
+      </div>
+      <div style="margin-top:7px;padding-top:6px;border-top:.5px solid #e5e7eb">
+        <div style="font-size:9px;font-weight:700;color:#9ca3af;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px">Por imposto</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 8px;align-items:center">
+          <span style="font-size:10px;color:#9ca3af">IPI</span><span id="t-ipi" style="font-size:11px;text-align:right;color:#6b7280">—</span>
+          <span style="font-size:10px;color:#9ca3af">ICMS</span><span id="t-icms" style="font-size:11px;text-align:right;color:#6b7280">—</span>
+          <span style="font-size:10px;color:#9ca3af">PIS</span><span id="t-pis" style="font-size:11px;text-align:right;color:#6b7280">—</span>
+          <span style="font-size:10px;color:#9ca3af">COFINS</span><span id="t-cofins" style="font-size:11px;text-align:right;color:#6b7280">—</span>
+        </div>
+      </div>
+      <div style="margin-top:7px;padding-top:6px;border-top:1.5px solid #dbeafe;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11px;color:#6b7280;font-weight:500">Margem líquida</span>
+        <span id="r-margem" style="font-size:14px;font-weight:700;color:#374151">—</span>
+      </div>
+    </div>
+
+    <div id="badge-status" style="background:#e5e7eb;border-radius:8px;padding:16px 18px;text-align:center;min-width:152px;display:flex;flex-direction:column;justify-content:center;transition:background .3s">
+      <div id="bs-title" style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#9ca3af">STATUS</div>
+      <div id="bs-pct" style="font-size:36px;font-weight:700;line-height:1.1;margin-top:6px;color:#9ca3af">—</div>
+      <div id="bs-type" style="font-size:11px;font-weight:600;margin-top:5px;color:#9ca3af">—</div>
+      <div id="bs-sub" style="font-size:10px;margin-top:3px;opacity:.75;color:#9ca3af">Preencha o pedido</div>
+    </div>
+  </div>
+</div>
+
+<!-- PEDIDO DE VENDAS -->
+<div style="margin:12px 18px 0">
+  <div style="background:#003177;border-radius:8px 8px 0 0;padding:8px 14px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.08em;text-transform:uppercase">📋 Pedido de Vendas</span>
+    <span id="lbl-active" style="font-size:10px;color:rgba(255,255,255,.55)">0 itens selecionados</span>
+  </div>
+  <div style="max-height:520px;overflow-y:auto;border-radius:0 0 8px 8px;border:1px solid #bfdbfe;border-top:none">
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead>
+        <tr>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:center;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:28px">#</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:left;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5">Item</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:center;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:52px">Qtde</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:center;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:72px">Tipo</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:82px">Custo unit.</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:88px">Custo total</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:72px">IPI</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:80px">ICMS</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:68px">PIS</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:76px">COFINS</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:90px">Preço</th>
+          <th style="background:#dbeafe;color:#004182;padding:6px 8px;font-size:10px;font-weight:700;text-align:right;border-bottom:1.5px solid #0A66C2;position:sticky;top:0;z-index:5;width:65px">Margem</th>
+        </tr>
+      </thead>
+      <tbody id="order-body"></tbody>
+      <tfoot>
+        <tr id="total-row" style="display:none">
+          <td colspan="5" style="padding:7px 8px;background:#dbeafe;font-size:10px;font-weight:700;color:#004182;border-top:2px solid #0A66C2;letter-spacing:.06em">TOTAL DO PACOTE</td>
+          <td id="tot-custo" style="padding:7px 8px;background:#dbeafe;text-align:right;font-weight:700;font-size:12px;color:#004182;border-top:2px solid #0A66C2"></td>
+          <td id="tot-ipi" style="padding:7px 8px;background:#dbeafe;text-align:right;font-weight:600;font-size:11px;color:#D97706;border-top:2px solid #0A66C2"></td>
+          <td id="tot-icms" style="padding:7px 8px;background:#dbeafe;text-align:right;font-weight:600;font-size:11px;color:#D97706;border-top:2px solid #0A66C2"></td>
+          <td id="tot-pis" style="padding:7px 8px;background:#dbeafe;text-align:right;font-weight:600;font-size:11px;color:#D97706;border-top:2px solid #0A66C2"></td>
+          <td id="tot-cofins" style="padding:7px 8px;background:#dbeafe;text-align:right;font-weight:600;font-size:11px;color:#D97706;border-top:2px solid #0A66C2"></td>
+          <td id="tot-preco" style="padding:7px 8px;background:#dbeafe;text-align:right;font-weight:700;font-size:14px;color:#0A66C2;border-top:2px solid #0A66C2"></td>
+          <td id="tot-marg" style="padding:7px 8px;background:#dbeafe;text-align:right;font-weight:700;font-size:13px;border-top:2px solid #0A66C2"></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div style="margin:0 18px 18px;background:#003177;border-radius:0 0 8px 8px;padding:9px 14px;display:flex;justify-content:flex-end">
+  <button onclick="sendAnalysis()" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.25);padding:6px 14px;border-radius:5px;font-size:11px;cursor:pointer">Analisar com Claude ↗</button>
+</div>
+</div>
+
+<script>
+const skus=[
+  {id:1, code:'PRD-001',name:'Placa Controladora Ethernet 10GbE',      category:'produzido',  cost:185,   ipi:0},
+  {id:2, code:'PRD-002',name:'Módulo IoT Sensor Industrial',            category:'produzido',  cost:98,    ipi:0},
+  {id:3, code:'PRD-003',name:'Gateway de Rede Local Gerenciável',       category:'produzido',  cost:340,   ipi:0},
+  {id:4, code:'PRD-004',name:'Cabo Estruturado Cat6 — Rolo 305m',       category:'produzido',  cost:42,    ipi:0},
+  {id:5, code:'KIT-001',name:'Kit Workstation Montagem Básica',         category:'produzido',  cost:870,   ipi:0},
+  {id:6, code:'KIT-002',name:'Kit Servidor Rack Entry Level',           category:'produzido',  cost:2900,  ipi:0},
+  {id:7, code:'KIT-003',name:'Kit Infraestrutura Rede — 24 Portas',    category:'produzido',  cost:1250,  ipi:0},
+  {id:8, code:'EQP-001',name:'Notebook Corporativo 15" Core i7',        category:'equipamento',cost:3200,  ipi:10},
+  {id:9, code:'EQP-002',name:'Monitor UltraWide 34" IPS 144Hz',        category:'equipamento',cost:1480,  ipi:8},
+  {id:10,code:'EQP-003',name:'Impressora Multifuncional Laser Color',   category:'equipamento',cost:920,   ipi:7},
+  {id:11,code:'EQP-004',name:'Servidor Tower Xeon E-2300 32GB',        category:'equipamento',cost:12800, ipi:8},
+  {id:12,code:'EQP-005',name:'Projetor Full HD 4000 Lúmens',           category:'equipamento',cost:2150,  ipi:6},
+  {id:13,code:'EQP-006',name:'Switch Gerenciável 48 Portas PoE',       category:'equipamento',cost:3600,  ipi:7},
+  {id:14,code:'REV-001',name:'Processador Intel Core i9 (importado)',   category:'revenda',    cost:2850,  ipi:5},
+  {id:15,code:'REV-002',name:'Memória RAM DDR5 32GB (importado)',      category:'revenda',    cost:440,   ipi:5},
+  {id:16,code:'REV-003',name:'SSD NVMe 2TB PCIe 4.0 (importado)',     category:'revenda',    cost:390,   ipi:5},
+  {id:17,code:'REV-004',name:'GPU Workstation Quadro RTX (importado)', category:'revenda',    cost:7200,  ipi:5},
+];
+
+const THRESH={produzido:[.60,.50,.40],equipamento:[.50,.40,.30],revenda:[.50,.40,.30],misto:[.50,.40,.30]};
+let rows=Array.from({length:30},(_,i)=>({rid:i,sid:0,qty:1}));
+
+const C=n=>(!n||isNaN(n)||!isFinite(n)||n===0)?'—':'R$ '+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const P=n=>(isNaN(n)||!isFinite(n))?'—':(n*100).toFixed(1)+'%';
+const isentoSpan='<span style="font-size:10px;color:#9ca3af;font-style:italic">isento</span>';
+const T=n=>n>0?`<span style="color:#D97706;font-weight:600">${C(n)}</span>`:isentoSpan;
+
+function pkgType(){
+  const cats=[...new Set(rows.map(r=>{const s=skus.find(x=>x.id===r.sid);return s?s.category:null}).filter(Boolean))];
+  if(!cats.length)return null;
+  const hasProd=cats.includes('produzido');
+  const hasOther=cats.some(c=>c!=='produzido');
+  return hasProd&&hasOther?'misto':cats[0];
+}
+
+function getRates(s,pt){
+  if(!s)return{ipi:0,icms:0,pis:0,cofins:0};
+  if(s.category==='produzido'&&pt!=='misto')return{ipi:0,icms:0,pis:0,cofins:0};
+  if(pt==='misto'&&s.category==='produzido')return{ipi:0,icms:.18,pis:0,cofins:0};
+  if(pt==='misto')return{ipi:(s.ipi||0)/100,icms:.18,pis:0,cofins:0};
+  return{ipi:(s.ipi||0)/100,icms:.18,pis:.0165,cofins:.076};
+}
+
+function goalSeek(cost,r,margin){
+  const tot=r.ipi+r.icms+r.pis+r.cofins;
+  return(margin>=1||tot>=1)?Infinity:cost/((1-margin)*(1-tot));
+}
+
+function apprInfo(margin,pt){
+  const th=THRESH[pt]||THRESH.equipamento;
+  if(margin>=th[0])return{label:'Aprovado',bg:'#1D9E75',txt:'#fff'};
+  if(margin>=th[1])return{label:'Dir. Comercial',bg:'#BA7517',txt:'#fff'};
+  if(margin>=th[2])return{label:'Dir. Financeira',bg:'#D85A30',txt:'#fff'};
+  return{label:'Não aprovado',bg:'#E24B4A',txt:'#fff'};
+}
+
+function catLabel(c){return c==='produzido'?'Produzido':c==='equipamento'?'Equip.':'Revenda';}
+function catColor(c){return c==='produzido'?'#0A66C2':c==='equipamento'?'#D97706':'#059669';}
+
+const skuOpts='<option value="0">— selecione —</option>'+skus.map(s=>`<option value="${s.id}">[${s.code}] ${s.name}</option>`).join('');
+
+function renderTable(){
+  const margin=parseInt(document.getElementById('margin').value)/100;
+  const pt=pkgType();
+  document.getElementById('order-body').innerHTML=rows.map((row,i)=>{
+    const s=row.sid?skus.find(x=>x.id===row.sid):null;
+    const r=getRates(s,pt);
+    const cost=s?s.cost*row.qty:0;
+    const price=s?goalSeek(cost,r,margin):0;
+    const ipiA=s?price*r.ipi:0,icmsA=s?price*r.icms:0,pisA=s?price*r.pis:0,cofinsA=s?price*r.cofins:0;
+    const netRev=s?price-ipiA-icmsA-pisA-cofinsA:0;
+    const marg=s&&netRev>0?(netRev-cost)/netRev:0;
+    const apprPt=s?s.category==='produzido'&&pt!=='misto'?'produzido':pt||'equipamento':'equipamento';
+    const margColor=s&&marg>0?apprInfo(marg,apprPt).bg:'#d1d5db';
+    const bg=i%2===0?'#fff':'#f8fafc';
+    const sel=skuOpts.replace(`value="${row.sid}"`,`value="${row.sid}" selected`);
+    return`<tr style="background:${bg}">
+      <td style="padding:4px 6px;text-align:center;color:#9ca3af;font-size:10px;font-weight:600">${i+1}</td>
+      <td style="padding:3px 6px"><select onchange="rows[${i}].sid=parseInt(this.value);calc()" style="font-size:11px;width:100%;border:1px solid ${s?'#bfdbfe':'#e5e7eb'};border-radius:3px;padding:3px 4px;background:${s?'#eff6ff':'#f9fafb'};color:${s?'#003177':'#9ca3af'}">${sel}</select></td>
+      <td style="padding:3px 6px;text-align:center">${s?`<input type="number" value="${row.qty}" min="1" onchange="rows[${i}].qty=parseInt(this.value)||1;calc()" style="width:42px;text-align:center;font-size:12px;font-weight:600;border:1px solid #bfdbfe;border-radius:3px;padding:2px 4px;color:#003177"/>`:''}</td>
+      <td style="padding:3px 6px;text-align:center">${s?`<span style="font-size:10px;font-weight:700;color:${catColor(s.category)}">${catLabel(s.category)}</span>`:''}</td>
+      <td style="padding:3px 8px;text-align:right;color:#6b7280;font-size:11px">${s?C(s.cost):''}</td>
+      <td style="padding:3px 8px;text-align:right;color:#374151;font-size:11px;font-weight:600">${s?C(cost):''}</td>
+      <td style="padding:3px 8px;text-align:right;font-size:11px">${s?T(ipiA):''}</td>
+      <td style="padding:3px 8px;text-align:right;font-size:11px">${s?T(icmsA):''}</td>
+      <td style="padding:3px 8px;text-align:right;font-size:11px">${s?T(pisA):''}</td>
+      <td style="padding:3px 8px;text-align:right;font-size:11px">${s?T(cofinsA):''}</td>
+      <td style="padding:3px 8px;text-align:right;font-size:12px;font-weight:700;color:${s?'#0A66C2':'#d1d5db'}">${s?C(price):''}</td>
+      <td style="padding:3px 8px;text-align:right;font-size:11px;font-weight:700;color:${margColor}">${s&&marg>0?P(marg):''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function calc(){
+  const margin=parseInt(document.getElementById('margin').value)/100;
+  document.getElementById('margin-lbl').textContent=(margin*100).toFixed(0)+'%';
+  const inst=parseInt(document.getElementById('inst').value)||1;
+  const rate=(parseFloat(document.getElementById('rate').value)||0)/100;
+  const entrada=parseFloat(document.getElementById('entrada').value)||0;
+  document.getElementById('row-taxa').style.display=inst>1?'':'none';
+  document.getElementById('row-parcela').style.display=inst>1?'':'none';
+
+  renderTable();
+
+  const pt=pkgType();
+  const active=rows.filter(r=>r.sid&&skus.find(x=>x.id===r.sid));
+  document.getElementById('lbl-active').textContent=`${active.length} ${active.length===1?'item':'itens'} selecionado${active.length===1?'':'s'}`;
+
+  if(!active.length){resetDisplay();return;}
+
+  let totCost=0,totPrice=0,totIpi=0,totIcms=0,totPis=0,totCofins=0,totNet=0;
+  active.forEach(row=>{
+    const s=skus.find(x=>x.id===row.sid);
+    const r=getRates(s,pt);
+    const cost=s.cost*row.qty;
+    const price=goalSeek(cost,r,margin);
+    const iA=price*r.ipi,cA=price*r.icms,pA=price*r.pis,fA=price*r.cofins;
+    totCost+=cost;totPrice+=price;totIpi+=iA;totIcms+=cA;totPis+=pA;totCofins+=fA;
+    totNet+=price-iA-cA-pA-fA;
+  });
+  const totTax=totIpi+totIcms+totPis+totCofins;
+  const totMargin=totNet>0?(totNet-totCost)/totNet:0;
+  const toFin=Math.max(0,totPrice-entrada);
+  const vf=inst>1?toFin*Math.pow(1+rate,inst):toFin;
+  const instVal=vf/inst;
+
+  document.getElementById('f-preco').textContent=C(totPrice);
+  document.getElementById('f-vf').textContent=C(toFin);
+  if(inst>1){
+    document.getElementById('f-parcela').textContent=`${inst}× de ${C(instVal)}`;
+    document.getElementById('f-total-fin').textContent=`Total com juros: ${C(entrada+vf)}`;
+  }
+  document.getElementById('r-custo').textContent=C(totCost);
+  document.getElementById('r-impost').textContent=C(totTax);
+  document.getElementById('r-margem').textContent=P(totMargin);
+  document.getElementById('t-ipi').innerHTML=totIpi>0?C(totIpi):isentoSpan;
+  document.getElementById('t-icms').innerHTML=totIcms>0?C(totIcms):isentoSpan;
+  document.getElementById('t-pis').innerHTML=totPis>0?C(totPis):isentoSpan;
+  document.getElementById('t-cofins').innerHTML=totCofins>0?C(totCofins):isentoSpan;
+
+  const appr=apprInfo(totMargin,pt||'equipamento');
+  const bs=document.getElementById('badge-status');
+  bs.style.background=appr.bg;
+  ['bs-title','bs-pct','bs-type','bs-sub'].forEach(id=>document.getElementById(id).style.color=appr.txt);
+  document.getElementById('bs-title').textContent=appr.label;
+  document.getElementById('bs-pct').textContent=P(totMargin);
+  document.getElementById('bs-type').textContent=`Pacote ${pt||'—'}`;
+  document.getElementById('bs-sub').textContent=`target ${(margin*100).toFixed(0)}% · ${active.length} iten${active.length===1?'':'s'}`;
+  document.getElementById('r-margem').style.color=appr.bg;
+
+  document.getElementById('total-row').style.display='';
+  document.getElementById('tot-custo').textContent=C(totCost);
+  document.getElementById('tot-ipi').innerHTML=totIpi>0?C(totIpi):'—';
+  document.getElementById('tot-icms').innerHTML=totIcms>0?C(totIcms):'—';
+  document.getElementById('tot-pis').innerHTML=totPis>0?C(totPis):'—';
+  document.getElementById('tot-cofins').innerHTML=totCofins>0?C(totCofins):'—';
+  document.getElementById('tot-preco').textContent=C(totPrice);
+  document.getElementById('tot-marg').textContent=P(totMargin);
+  document.getElementById('tot-marg').style.color=appr.bg;
+}
+
+function resetDisplay(){
+  ['f-preco','f-vf','r-custo','r-impost','r-margem'].forEach(id=>{const el=document.getElementById(id);if(el){el.textContent='—';el.style.color=''}});
+  ['t-ipi','t-icms','t-pis','t-cofins'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+  const bs=document.getElementById('badge-status');
+  bs.style.background='#e5e7eb';
+  ['bs-title','bs-pct','bs-type','bs-sub'].forEach(id=>{document.getElementById(id).style.color='#9ca3af';});
+  document.getElementById('bs-title').textContent='STATUS';document.getElementById('bs-pct').textContent='—';
+  document.getElementById('bs-type').textContent='—';document.getElementById('bs-sub').textContent='Preencha o pedido';
+  document.getElementById('total-row').style.display='none';
+}
+
+function precificar(btn){
+  const active=rows.filter(r=>r.sid&&skus.find(x=>x.id===r.sid));
+  if(!active.length){
+    btn.textContent='⚠️ Sem itens';btn.style.background='#B45309';
+    setTimeout(()=>{btn.textContent='⚡ Gerar Precificação';btn.style.background='#4B5563';btn.disabled=false;},1800);
+    return;
+  }
+  const orig=btn.textContent;
+  btn.textContent='⏳ Calculando...';btn.disabled=true;btn.style.background='#374151';
+
+  setTimeout(()=>{
+    // Detecta tipo do pacote e pega threshold de Aprovado
+    const pt=pkgType()||'equipamento';
+    const th=THRESH[pt]||THRESH.equipamento;
+    const targetMargin=th[0]; // primeiro threshold = Aprovado
+
+    // Anima o slider subindo até a margem target
+    const sliderEl=document.getElementById('margin');
+    const currentVal=parseInt(sliderEl.value);
+    const targetVal=Math.round(targetMargin*100);
+    const steps=20;
+    const delta=(targetVal-currentVal)/steps;
+    let step=0;
+
+    const animate=setInterval(()=>{
+      step++;
+      const newVal=Math.round(currentVal+delta*step);
+      sliderEl.value=Math.min(85,Math.max(5,newVal));
+      document.getElementById('margin-lbl').textContent=sliderEl.value+'%';
+      if(step>=steps){
+        clearInterval(animate);
+        sliderEl.value=targetVal;
+        calc();
+        btn.textContent='✅ Aprovado — '+targetVal+'%';
+        btn.style.background='#1D9E75';
+        setTimeout(()=>{btn.textContent=orig;btn.style.background='#4B5563';btn.disabled=false;},2200);
+      }
+    },18);
+  },200);
+}
+function adjInst(d){const el=document.getElementById('inst');el.value=Math.min(35,Math.max(1,(parseInt(el.value)||1)+d));calc();}
+function clampInst(){const el=document.getElementById('inst');el.value=Math.min(35,Math.max(1,parseInt(el.value)||1));}
+function resetAll(){rows=Array.from({length:30},(_,i)=>({rid:i,sid:0,qty:1}));document.getElementById('entrada').value=0;document.getElementById('inst').value=1;document.getElementById('margin').value=40;calc();}
+function sendAnalysis(){alert('Cole o link deste arquivo no Claude para análise.');}
+calc();
+</script>
+</body>
+</html>
